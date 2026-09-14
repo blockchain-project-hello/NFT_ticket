@@ -1,24 +1,38 @@
-export const TICKET_NFT_ABI = [
-  "function mintTicket(uint256 eventId) payable",
-  "function listForResale(uint256 tokenId, uint256 askPrice)",
-  "function resaleTicket(uint256 tokenId, uint256 maxPrice, uint256 nonce, uint256 deadline, bytes signature) payable",
-  "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)",
-  "event TicketResold(uint256 indexed tokenId, address indexed seller, address indexed buyer, uint256 price, uint256 royalty)",
-  "event TicketListed(uint256 indexed tokenId, address indexed owner, uint256 price)",
-  "function name() view returns (string)",
-  "function symbol() view returns (string)",
-  "function ownerOf(uint256 tokenId) view returns (address)",
-  "function getTicketEvent(uint256 tokenId) view returns (uint256)",
-  "function basePrice(uint256 eventId) view returns (uint256)"
-] as const;
+export const TicketNFTABI = [
+  {"type":"function","name":"createEvent","inputs":[{"name":"_uri","type":"string"},{"name":"_price","type":"uint256"},{"name":"_maxSupply","type":"uint256"},{"name":"_startTime","type":"uint256"}],"outputs":[],"stateMutability":"nonpayable"},
+  {"type":"function","name":"mintTicket","inputs":[{"name":"eventId","type":"uint256"}],"outputs":[],"stateMutability":"payable"},
+  {"type":"function","name":"listForResale","inputs":[{"name":"tokenId","type":"uint256"},{"name":"price","type":"uint256"}],"outputs":[],"stateMutability":"nonpayable"},
+  {"type":"function","name":"delistFromResale","inputs":[{"name":"tokenId","type":"uint256"}],"outputs":[],"stateMutability":"nonpayable"},
+  {"type":"function","name":"resaleTicket","inputs":[{"name":"tokenId","type":"uint256"},{"name":"maxPrice","type":"uint256"},{"name":"deadline","type":"uint256"},{"name":"nonce","type":"uint256"},{"name":"signature","type":"bytes"}],"outputs":[],"stateMutability":"payable"},
+  {"type":"function","name":"name","inputs":[],"outputs":[{"name":"","type":"string"}],"stateMutability":"view"},
+  {"type":"function","name":"symbol","inputs":[],"outputs":[{"name":"","type":"string"}],"stateMutability":"view"},
+  {"type":"function","name":"ownerOf","inputs":[{"name":"tokenId","type":"uint256"}],"outputs":[{"name":"","type":"address"}],"stateMutability":"view"},
+  {"type":"function","name":"getTicketEvent","inputs":[{"name":"tokenId","type":"uint256"}],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"view"},
+  {"type":"function","name":"basePrice","inputs":[{"name":"eventId","type":"uint256"}],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"view"},
+  {"type":"function","name":"totalSupply","inputs":[],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"view"},
+  {"type":"function","name":"authorizedSigner","inputs":[],"outputs":[{"name":"","type":"address"}],"stateMutability":"view"},
+  {"type":"function","name":"events","inputs":[{"name":"eventId","type":"uint256"}],"outputs":[{"name":"uri","type":"string"},{"name":"price","type":"uint256"},{"name":"maxSupply","type":"uint256"},{"name":"startTime","type":"uint256"}],"stateMutability":"view"},
+  {"type":"function","name":"resaleListings","inputs":[{"name":"tokenId","type":"uint256"}],"outputs":[{"name":"isListed","type":"bool"},{"name":"price","type":"uint256"}],"stateMutability":"view"},
+  {"type":"event","name":"EventCreated","inputs":[{"indexed":true,"name":"eventId","type":"uint256"},{"indexed":false,"name":"uri","type":"string"}],"anonymous":false},
+  {"type":"event","name":"TicketMinted","inputs":[{"indexed":true,"name":"tokenId","type":"uint256"},{"indexed":true,"name":"eventId","type":"uint256"},{"indexed":true,"name":"buyer","type":"address"}],"anonymous":false},
+  {"type":"event","name":"TicketListed","inputs":[{"indexed":true,"name":"tokenId","type":"uint256"},{"indexed":false,"name":"price","type":"uint256"}],"anonymous":false},
+  {"type":"event","name":"TicketDelisted","inputs":[{"indexed":true,"name":"tokenId","type":"uint256"}],"anonymous":false},
+  {"type":"event","name":"TicketResold","inputs":[{"indexed":true,"name":"tokenId","type":"uint256"},{"indexed":true,"name":"seller","type":"address"},{"indexed":true,"name":"buyer","type":"address"},{"indexed":false,"name":"price","type":"uint256"},{"indexed":false,"name":"royalty","type":"uint256"}],"anonymous":false},
+  {"type":"event","name":"Transfer","inputs":[{"indexed":true,"name":"from","type":"address"},{"indexed":true,"name":"to","type":"address"},{"indexed":true,"name":"tokenId","type":"uint256"}],"anonymous":false},
+  {"type":"event","name":"Approval","inputs":[{"indexed":true,"name":"owner","type":"address"},{"indexed":true,"name":"approved","type":"address"},{"indexed":true,"name":"tokenId","type":"uint256"}],"anonymous":false},
+  {"type":"event","name":"ApprovalForAll","inputs":[{"indexed":true,"name":"owner","type":"address"},{"indexed":true,"name":"operator","type":"address"},{"indexed":false,"name":"approved","type":"bool"}],"anonymous":false}
+];
 
-export const ESCROW_ABI = [
-  "function createCampaign(uint256 eventId, uint256 goal, uint256 deadline)",
-  "function backCampaign(uint256 campaignId) payable",
-  "function finalizeCampaign(uint256 campaignId)",
-  "function claimRefund(uint256 campaignId)",
-  "event CampaignCreated(uint256 indexed campaignId, uint256 eventId, uint256 goal, uint256 deadline)",
-  "event CampaignBacked(uint256 indexed campaignId, address indexed backer, uint256 amount)",
-  "event CampaignStateChanged(uint256 indexed campaignId, uint8 state)",
-  "function getCampaign(uint256 campaignId) view returns (uint256 eventId, uint256 goal, uint256 funded, uint256 deadline, uint8 state)"
-] as const;
+export const CrowdfundEscrowABI = [
+  {"type":"function","name":"createCampaign","inputs":[{"name":"targetAmount","type":"uint256"},{"name":"deadline","type":"uint256"},{"name":"minimumContribution","type":"uint256"}],"outputs":[],"stateMutability":"nonpayable"},
+  {"type":"function","name":"backCampaign","inputs":[{"name":"campaignId","type":"uint256"}],"outputs":[],"stateMutability":"payable"},
+  {"type":"function","name":"finalizeCampaign","inputs":[{"name":"campaignId","type":"uint256"}],"outputs":[],"stateMutability":"nonpayable"},
+  {"type":"function","name":"claimRefund","inputs":[{"name":"campaignId","type":"uint256"}],"outputs":[],"stateMutability":"nonpayable"},
+  {"type":"function","name":"getCampaign","inputs":[{"name":"campaignId","type":"uint256"}],"outputs":[{"name":"creator","type":"address"},{"name":"targetAmount","type":"uint256"},{"name":"totalCollected","type":"uint256"},{"name":"deadline","type":"uint256"},{"name":"state","type":"uint8"}],"stateMutability":"view"},
+  {"type":"function","name":"contributions","inputs":[{"name":"campaignId","type":"uint256"},{"name":"contributor","type":"address"}],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"view"},
+  {"type":"event","name":"CampaignCreated","inputs":[{"indexed":true,"name":"campaignId","type":"uint256"},{"indexed":true,"name":"creator","type":"address"},{"indexed":false,"name":"targetAmount","type":"uint256"}],"anonymous":false},
+  {"type":"event","name":"CampaignBacked","inputs":[{"indexed":true,"name":"campaignId","type":"uint256"},{"indexed":true,"name":"contributor","type":"address"},{"indexed":false,"name":"amount","type":"uint256"}],"anonymous":false},
+  {"type":"event","name":"CampaignFinalized","inputs":[{"indexed":true,"name":"campaignId","type":"uint256"}],"anonymous":false},
+  {"type":"event","name":"CampaignStateChanged","inputs":[{"indexed":true,"name":"campaignId","type":"uint256"},{"indexed":false,"name":"newState","type":"uint8"}],"anonymous":false},
+  {"type":"event","name":"RefundClaimed","inputs":[{"indexed":true,"name":"campaignId","type":"uint256"},{"indexed":true,"name":"contributor","type":"address"},{"indexed":false,"name":"amount","type":"uint256"}],"anonymous":false}
+];

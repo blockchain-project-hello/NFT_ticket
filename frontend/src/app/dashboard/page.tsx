@@ -11,7 +11,8 @@ import {
   Repeat, 
   BadgePercent, 
   MessageSquarePlus,
-  BarChart3
+  BarChart3,
+  Scan
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -42,12 +43,21 @@ export default function Dashboard() {
               <h1 className="text-3xl font-bold text-white mb-2">Overview</h1>
               <p className="text-gray-400">Welcome back! Here's how your events are performing.</p>
             </div>
-            <Button 
-              onClick={() => setIsChatOpen(true)}
-              className="gap-2 shrink-0 shadow-lg shadow-violet-500/20"
-            >
-              <MessageSquarePlus className="w-5 h-5" /> Ask AI Assistant
-            </Button>
+            <div className="flex gap-4">
+              <Button 
+                variant="outline"
+                className="gap-2 shrink-0 border-violet-500/30 hover:bg-violet-500/10"
+                onClick={() => window.location.href = '/dashboard/scanner'}
+              >
+                <Scan className="w-4 h-4" /> Gate Scanner
+              </Button>
+              <Button 
+                onClick={() => setIsChatOpen(true)}
+                className="gap-2 shrink-0 shadow-lg shadow-violet-500/20"
+              >
+                <MessageSquarePlus className="w-5 h-5" /> Ask AI Assistant
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">

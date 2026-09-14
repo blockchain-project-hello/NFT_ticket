@@ -97,3 +97,5 @@ export const getMarketplaceListings = async () => {
     { tokenId: 22, eventId: 3, eventName: 'Virtual Reality Expo', seller: '0x3333...4444', price: '0.85', status: 'Listed' },
   ];
 };
+
+export const verifyTicketAtGate = async (payload: { event_id: string; token_id: number; timestamp: number; signature: string; }) => { try { const response = await api.post('/verify-ticket', payload); return response.data; } catch (error: any) { console.error('Failed to verify ticket:', error); return { success: false, message: error.response?.data?.message || 'Gate verification failed.' }; } };

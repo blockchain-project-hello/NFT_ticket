@@ -56,3 +56,13 @@ class SaleRecord(BaseModel):
     royalty_paid: str
     tx_hash: str
     timestamp: str
+
+class VerifyTicketRequest(BaseModel):
+    event_id: str
+    token_id: int
+    timestamp: int
+    signature: str
+
+class VerifyTicketResponse(BaseModel):
+    success: bool
+    message: str

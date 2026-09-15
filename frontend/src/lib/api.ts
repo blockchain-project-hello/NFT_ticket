@@ -15,7 +15,7 @@ export const getResaleQuote = async (
 ) => {
   try {
     const response = await api.post('/api/pricing/resale-quote', {
-      event_id: eventId,
+      event_id: eventId.toString(),
       token_id: tokenId,
       seller_address: sellerAddress,
       buyer_address: buyerAddress,
@@ -26,7 +26,7 @@ export const getResaleQuote = async (
     return {
       max_price: '1500000000000000000',
       deadline: Math.floor(Date.now() / 1000) + 3600,
-      nonce: Math.floor(Math.random() * 1000000),
+      nonce: Math.floor(Math.random() * 1000000).toString(),
       signature: '0x' + '00'.repeat(65),
     };
   }
@@ -58,7 +58,7 @@ export const getEvents = async () => {
       id: 1,
       name: 'Neon Nights Music Festival',
       date: '2026-10-31',
-      basePrice: '0.5',
+      basePrice: '0.01',
       supply: 1000,
       minted: 450,
       image:
@@ -68,7 +68,7 @@ export const getEvents = async () => {
       id: 2,
       name: 'Web3 Developer Summit',
       date: '2026-11-15',
-      basePrice: '1.2',
+      basePrice: '0.02',
       supply: 500,
       minted: 500,
       image:
@@ -78,7 +78,7 @@ export const getEvents = async () => {
       id: 3,
       name: 'Virtual Reality Expo',
       date: '2026-12-05',
-      basePrice: '0.8',
+      basePrice: '0.015',
       supply: 2000,
       minted: 120,
       image:
@@ -88,14 +88,13 @@ export const getEvents = async () => {
 };
 
 export const getMarketplaceListings = async () => {
-  return [
-    { tokenId: 101, eventId: 1, eventName: 'Neon Nights Music Festival', seller: '0x1234...5678', price: '0.6', status: 'Listed' },
-    { tokenId: 205, eventId: 2, eventName: 'Web3 Developer Summit', seller: '0x8765...4321', price: '1.5', status: 'Listed' },
-    { tokenId: 211, eventId: 2, eventName: 'Web3 Developer Summit', seller: '0xabcd...efgh', price: '1.4', status: 'Listed' },
-    { tokenId: 45, eventId: 1, eventName: 'Neon Nights Music Festival', seller: '0x9999...8888', price: '0.55', status: 'Listed' },
-    { tokenId: 18, eventId: 3, eventName: 'Virtual Reality Expo', seller: '0x1111...2222', price: '0.9', status: 'Listed' },
-    { tokenId: 22, eventId: 3, eventName: 'Virtual Reality Expo', seller: '0x3333...4444', price: '0.85', status: 'Listed' },
-  ];
+  try {
+    throw new Error("fallback");
+  } catch (err) {
+    return [
+      { tokenId: 3, eventId: 1, eventName: "Neon Nights Music Festival", seller: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", price: "0.012", status: "Active" }
+    ];
+  }
 };
 
-export const verifyTicketAtGate = async (payload: { event_id: string; token_id: number; timestamp: number; signature: string; }) => { try { const response = await api.post('/verify-ticket', payload); return response.data; } catch (error: any) { console.error('Failed to verify ticket:', error); return { success: false, message: error.response?.data?.message || 'Gate verification failed.' }; } };
+export const verifyTicketAtGate = async (payload: { event_id: string; token_id: number; timestamp: number; signature: string; }) => { try { const response = await api.post('/api/verification/verify-ticket', payload); return response.data; } catch (error: any) { console.error('Failed to verify ticket:', error); return { success: false, message: error.response?.data?.message || 'Gate verification failed.' }; } };

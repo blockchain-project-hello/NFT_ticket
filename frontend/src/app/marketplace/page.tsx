@@ -35,10 +35,20 @@ export default function Marketplace() {
     setQuoteError(null);
 
     try {
+      console.log("Requesting Resale Quote...");
+      
       // 1. Get EIP-712 dynamic pricing quote from backend
       const quote = await getResaleQuote(ticket.eventId, ticket.tokenId, ticket.seller, address);
       
+      console.log("RECEIVED QUOTE FROM BACKEND:", quote);
+      
+      // Ensure signature has 0x prefix for viem
+      const formattedSignature = quote.signature.startsWith('0x') ? quote.signature : `0x${quote.signature}`;
+      
+      console.log("Formatted Signature for Execution:", formattedSignature);
+
       // 2. Execute on-chain transaction
+      console.log("Executing writeContract...");
       writeContract({
         address: contractAddress,
         abi: TICKET_NFT_ABI,
@@ -48,7 +58,7 @@ export default function Marketplace() {
           BigInt(quote.max_price),
           BigInt(quote.nonce),
           BigInt(quote.deadline),
-          quote.signature as `0x${string}`
+          formattedSignature as `0x${string}`
         ],
         value: BigInt(quote.max_price),
       });

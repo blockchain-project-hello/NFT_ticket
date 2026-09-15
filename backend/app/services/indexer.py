@@ -78,8 +78,8 @@ class Web3Indexer:
             if from_block > to_block:
                 return
 
-            mint_logs = self.contract.events.TicketMinted.get_logs(fromBlock=from_block, toBlock=to_block)
-            resale_logs = self.contract.events.TicketResold.get_logs(fromBlock=from_block, toBlock=to_block)
+            mint_logs = self.contract.events.TicketMinted.get_logs(from_block=from_block, to_block=to_block)
+            resale_logs = self.contract.events.TicketResold.get_logs(from_block=from_block, to_block=to_block)
 
             for event in mint_logs:
                 self._process_mint_event(event)

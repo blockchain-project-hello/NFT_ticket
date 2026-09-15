@@ -19,7 +19,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.className} min-h-screen flex flex-col bg-gray-950 text-gray-100`}>
+      <body className={`${inter.className} bg-gray-950 text-gray-50 min-h-screen flex flex-col antialiased selection:bg-violet-500/30`}>
+        <script dangerouslySetInnerHTML={{ __html: `
+          try {
+            for (let i = 0; i < localStorage.length; i++) {
+              const key = localStorage.key(i);
+              if (key && key.includes('walletconnect')) {
+                localStorage.removeItem(key);
+              }
+            }
+          } catch (e) {}
+        `}} />
         <Providers>
           <header className="sticky top-0 z-50 glass-card border-b-0 border-white/10 px-6 py-4 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2 group">

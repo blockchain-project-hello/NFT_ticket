@@ -78,6 +78,27 @@ def upsert_ticket(token_id: int, event_id: str, owner: str, status: str) -> None
     except Exception as e:
         logger.error(f"Error upserting ticket {token_id}: {e}")
 
+def get_ticket(token_id: int) -> Optional[Dict[str, Any]]:
+    """Fetches a ticket by token_id."""
+    supabase = get_supabase()
+    try:
+        response = supabase.table("tickets").select("*").eq("token_id", token_id).execute()
+        data = response.data
+        return data[0] if data else None
+    except Exception as e:
+        logger.error(f"Error fetching ticket {token_id}: {e}")
+        return None
+
+def update_ticket_status(token_id: int, status: str) -> bool:
+    """Updates the status of a ticket."""
+    supabase = get_supabase()
+    try:
+        supabase.table("tickets").update({"status": status}).eq("token_id", token_id).execute()
+        return True
+    except Exception as e:
+        logger.error(f"Error updating ticket {token_id} status: {e}")
+        return False
+
 def insert_sale(event_id: str, token_id: int, seller: str, buyer: str, price: str, royalty_paid: str, tx_hash: str, block_number: int) -> None:
     """Inserts a new sale record."""
     supabase = get_supabase()

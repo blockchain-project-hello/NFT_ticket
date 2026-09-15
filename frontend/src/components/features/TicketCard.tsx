@@ -40,7 +40,7 @@ export function TicketCard({ tokenId, eventName, seller, price, status, onBuy, i
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-400 flex items-center gap-2"><Tag className="w-4 h-4"/> Price</span>
-            <span className="text-violet-400 font-bold">{price} MATIC</span>
+            <span className="text-violet-400 font-bold">{price} ETH</span>
           </div>
         </div>
         

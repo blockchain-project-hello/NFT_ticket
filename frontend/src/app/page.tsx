@@ -103,9 +103,6 @@ export default async function Home() {
               <h2 className="text-3xl font-bold mb-2">Upcoming Events</h2>
               <p className="text-gray-400">Don't miss out on the hottest gatherings.</p>
             </div>
-            <Link href="/marketplace">
-              <Button variant="ghost" className="text-cyan-400 hover:text-cyan-300">View All</Button>
-            </Link>
           </div>
           
           <div className="grid md:grid-cols-3 gap-8">
@@ -126,7 +123,7 @@ export default async function Home() {
                   <div className="p-5 flex items-center justify-between">
                     <div>
                       <div className="text-sm text-gray-400">Starting at</div>
-                      <div className="text-lg font-bold text-cyan-400">{event.basePrice} MATIC</div>
+                      <div className="text-lg font-bold text-cyan-400">{event.basePrice} ETH</div>
                     </div>
                     <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-violet-500 transition-colors">
                       <ArrowRight className="w-5 h-5 text-white" />

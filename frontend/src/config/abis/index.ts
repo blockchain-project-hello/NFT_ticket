@@ -1,5 +1,7 @@
 export const TicketNFTABI = [
-  {"type":"function","name":"createEvent","inputs":[{"name":"_uri","type":"string"},{"name":"_price","type":"uint256"},{"name":"_maxSupply","type":"uint256"},{"name":"_startTime","type":"uint256"}],"outputs":[],"stateMutability":"nonpayable"},
+  {"type":"function","name":"balanceOf","inputs":[{"name":"owner","type":"address"}],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"view"},
+  {"type":"function","name":"tokenOfOwnerByIndex","inputs":[{"name":"owner","type":"address"},{"name":"index","type":"uint256"}],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"view"},
+  {"type":"function","name":"createEvent","inputs":[{"name":"name","type":"string"},{"name":"_basePrice","type":"uint256"},{"name":"totalSupply","type":"uint256"},{"name":"eventDate","type":"uint256"}],"outputs":[],"stateMutability":"nonpayable"},
   {"type":"function","name":"mintTicket","inputs":[{"name":"eventId","type":"uint256"}],"outputs":[],"stateMutability":"payable"},
   {"type":"function","name":"listForResale","inputs":[{"name":"tokenId","type":"uint256"},{"name":"price","type":"uint256"}],"outputs":[],"stateMutability":"nonpayable"},
   {"type":"function","name":"delistFromResale","inputs":[{"name":"tokenId","type":"uint256"}],"outputs":[],"stateMutability":"nonpayable"},
@@ -36,3 +38,5 @@ export const CrowdfundEscrowABI = [
   {"type":"event","name":"CampaignStateChanged","inputs":[{"indexed":true,"name":"campaignId","type":"uint256"},{"indexed":false,"name":"newState","type":"uint8"}],"anonymous":false},
   {"type":"event","name":"RefundClaimed","inputs":[{"indexed":true,"name":"campaignId","type":"uint256"},{"indexed":true,"name":"contributor","type":"address"},{"indexed":false,"name":"amount","type":"uint256"}],"anonymous":false}
 ];
+
+export const TICKET_NFT_ABI = TicketNFTABI;

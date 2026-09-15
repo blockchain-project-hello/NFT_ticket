@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from 'react';
-import { useAccount, useSignMessage } from 'wagmi';
+import { useState, useEffect } from 'react';
+import { useAccount, useSignMessage, usePublicClient } from 'wagmi';
 import { Button } from '@/components/ui/button';
 import { Ticket, QrCode, X, RefreshCw } from 'lucide-react';
+import { TICKET_NFT_ABI } from '@/config/abis';
 
 // Using a basic div styling to simulate QR code for now to avoid dependency issues, 
 // since cuer had issues earlier. In a real app we'd use react-qr-code
@@ -20,16 +21,69 @@ const QRCodeDisplay = ({ payload }: { payload: string }) => {
 
 export function FanDashboard() {
   const { address } = useAccount();
+  const publicClient = usePublicClient();
   const { signMessageAsync } = useSignMessage();
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [qrPayload, setQrPayload] = useState<string>("");
   const [isSigning, setIsSigning] = useState(false);
+  
+  const [myTickets, setMyTickets] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const contractAddress = process.env.NEXT_PUBLIC_TICKET_CONTRACT_ADDRESS as `0x${string}`;
 
-  // Mock tickets for the fan
-  const myTickets = [
-    { tokenId: 101, eventId: 1, eventName: "Neon Nights Music Festival", date: "2026-10-31", status: "Valid" },
-    { tokenId: 405, eventId: 2, eventName: "Web3 Developer Summit", date: "2026-11-15", status: "Valid" },
-  ];
+  useEffect(() => {
+    async function fetchTickets() {
+      if (!address || !publicClient) {
+        setIsLoading(false);
+        return;
+      }
+      setIsLoading(true);
+      try {
+        const balance = await publicClient.readContract({
+          address: contractAddress,
+          abi: TICKET_NFT_ABI,
+          functionName: 'balanceOf',
+          args: [address]
+        }) as bigint;
+
+        const tickets = [];
+        for (let i = 0; i < Number(balance); i++) {
+          const tokenId = await publicClient.readContract({
+            address: contractAddress,
+            abi: TICKET_NFT_ABI,
+            functionName: 'tokenOfOwnerByIndex',
+            args: [address, BigInt(i)]
+          }) as bigint;
+
+          const eventId = await publicClient.readContract({
+            address: contractAddress,
+            abi: TICKET_NFT_ABI,
+            functionName: 'getTicketEvent',
+            args: [tokenId]
+          }) as bigint;
+
+          let eventName = "Virtual Reality Expo";
+          if (Number(eventId) === 1) eventName = "Neon Nights Music Festival";
+          if (Number(eventId) === 2) eventName = "Web3 Developer Summit";
+
+          tickets.push({
+            tokenId: Number(tokenId),
+            eventId: Number(eventId),
+            eventName,
+            date: "2026-12-01",
+            status: "Valid"
+          });
+        }
+        setMyTickets(tickets);
+      } catch (err) {
+        console.error("Failed to fetch real tickets", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchTickets();
+  }, [address, publicClient, contractAddress]);
 
   const handleGenerateQR = async (ticket: any) => {
     try {
@@ -63,32 +117,44 @@ export function FanDashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {myTickets.map((ticket, i) => (
-          <div key={i} className="glass-card rounded-2xl p-6 border border-white/5 flex flex-col">
-            <div className="flex justify-between items-start mb-4">
-              <div className="w-12 h-12 bg-violet-500/20 rounded-xl flex items-center justify-center">
-                <Ticket className="w-6 h-6 text-violet-400" />
-              </div>
-              <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs font-semibold rounded-full">
-                {ticket.status}
-              </span>
-            </div>
-            
-            <h3 className="text-lg font-bold text-white mb-1 line-clamp-1">{ticket.eventName}</h3>
-            <p className="text-sm text-gray-400 mb-6">{ticket.date} • Token #{ticket.tokenId}</p>
-            
-            <div className="mt-auto pt-4 border-t border-white/10">
-              <Button 
-                onClick={() => handleGenerateQR(ticket)}
-                disabled={isSigning}
-                className="w-full bg-white text-black hover:bg-gray-200"
-              >
-                {isSigning ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <QrCode className="w-4 h-4 mr-2" />}
-                Show Access QR
-              </Button>
-            </div>
+        {isLoading ? (
+          <div className="col-span-full flex justify-center py-12">
+            <RefreshCw className="w-8 h-8 text-violet-500 animate-spin" />
           </div>
-        ))}
+        ) : myTickets.length === 0 ? (
+          <div className="col-span-full text-center py-12 bg-white/5 rounded-2xl border border-white/10">
+            <Ticket className="w-12 h-12 text-gray-500 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-white mb-2">No Tickets Found</h3>
+            <p className="text-gray-400">You haven't purchased any tickets yet.</p>
+          </div>
+        ) : (
+          myTickets.map((ticket, i) => (
+            <div key={i} className="glass-card rounded-2xl p-6 border border-white/5 flex flex-col">
+              <div className="flex justify-between items-start mb-4">
+                <div className="w-12 h-12 bg-violet-500/20 rounded-xl flex items-center justify-center">
+                  <Ticket className="w-6 h-6 text-violet-400" />
+                </div>
+                <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs font-semibold rounded-full">
+                  {ticket.status}
+                </span>
+              </div>
+              
+              <h3 className="text-lg font-bold text-white mb-1 line-clamp-1">{ticket.eventName}</h3>
+              <p className="text-sm text-gray-400 mb-6">{ticket.date} • Token #{ticket.tokenId}</p>
+              
+              <div className="mt-auto pt-4 border-t border-white/10">
+                <Button 
+                  onClick={() => handleGenerateQR(ticket)}
+                  disabled={isSigning}
+                  className="w-full bg-white text-black hover:bg-gray-200"
+                >
+                  {isSigning ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <QrCode className="w-4 h-4 mr-2" />}
+                  Show Access QR
+                </Button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* QR Code Modal */}

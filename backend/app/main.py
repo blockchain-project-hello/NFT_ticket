@@ -6,10 +6,12 @@ from app.api.router import api_router
 from app.services.indexer import Web3Indexer
 import asyncio
 
+from app.core.config import settings
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-indexer = Web3Indexer()
+indexer = Web3Indexer(contract_address=settings.TICKET_NFT_ADDRESS)
 indexer_task = None
 
 @asynccontextmanager

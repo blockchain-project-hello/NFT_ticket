@@ -82,10 +82,10 @@ export default function CrowdfundCampaign({ params }: { params: { id: string } }
             <div className="flex justify-between items-end mb-4">
               <div>
                 <div className="text-sm text-gray-400 font-medium mb-1 flex items-center gap-2">
-                  <Target className="w-4 h-4"/> Goal: {campaign.goal} MATIC
+                  <Target className="w-4 h-4"/> Goal: {campaign.goal} ETH
                 </div>
                 <div className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-violet-400">
-                  {campaign.funded} MATIC
+                  {campaign.funded} ETH
                 </div>
               </div>
               <div className="text-xl font-bold text-white">
@@ -106,7 +106,7 @@ export default function CrowdfundCampaign({ params }: { params: { id: string } }
           <div className="bg-black/30 rounded-2xl p-6 border border-white/5 space-y-6">
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4"/> Backing Amount (MATIC)
+                <TrendingUp className="w-4 h-4"/> Backing Amount (ETH)
               </label>
               <div className="relative">
                 <input 
@@ -116,7 +116,7 @@ export default function CrowdfundCampaign({ params }: { params: { id: string } }
                   className="w-full bg-white/5 border border-white/10 rounded-xl py-4 px-4 text-xl font-bold text-white focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all"
                 />
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">
-                  MATIC
+                  ETH
                 </div>
               </div>
             </div>

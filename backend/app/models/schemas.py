@@ -12,7 +12,7 @@ class ResaleQuoteResponse(BaseModel):
     """Response schema containing the authorized resale quote."""
     max_price: str = Field(..., description="Maximum price in wei as a string")
     deadline: int
-    nonce: int
+    nonce: str
     signature: str
 
 class ChatRequest(BaseModel):

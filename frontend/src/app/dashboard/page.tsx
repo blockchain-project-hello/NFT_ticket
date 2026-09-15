@@ -88,9 +88,9 @@ export default function Dashboard() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-              <KPICard title="Gross Sales" value="24.5k MATIC" icon={DollarSign} trend={12.5} />
-              <KPICard title="Royalties Earned" value="1.2k MATIC" icon={BadgePercent} trend={8.2} />
-              <KPICard title="Resale Volume" value="15.8k MATIC" icon={Repeat} trend={-2.4} />
+              <KPICard title="Gross Sales" value="24.5k ETH" icon={DollarSign} trend={12.5} />
+              <KPICard title="Royalties Earned" value="1.2k ETH" icon={BadgePercent} trend={8.2} />
+              <KPICard title="Resale Volume" value="15.8k ETH" icon={Repeat} trend={-2.4} />
               <KPICard title="Active Tickets" value="3,450" icon={Ticket} trend={4.1} />
             </div>
 
@@ -110,10 +110,10 @@ export default function Dashboard() {
                 <h3 className="text-lg font-bold text-white mb-6">Recent Transactions</h3>
                 <div className="space-y-4">
                   {[
-                    { action: "Ticket Minted", event: "Neon Nights", price: "0.5 MATIC", time: "2 mins ago" },
-                    { action: "Secondary Sale", event: "Web3 Summit", price: "1.2 MATIC", time: "15 mins ago" },
-                    { action: "Royalty Received", event: "Web3 Summit", price: "0.12 MATIC", time: "15 mins ago" },
-                    { action: "Campaign Backed", event: "VR Expo", price: "5.0 MATIC", time: "1 hour ago" },
+                    { action: "Ticket Minted", event: "Neon Nights", price: "0.5 ETH", time: "2 mins ago" },
+                    { action: "Secondary Sale", event: "Web3 Summit", price: "1.2 ETH", time: "15 mins ago" },
+                    { action: "Royalty Received", event: "Web3 Summit", price: "0.12 ETH", time: "15 mins ago" },
+                    { action: "Campaign Backed", event: "VR Expo", price: "5.0 ETH", time: "1 hour ago" },
                   ].map((tx, i) => (
                     <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5">
                       <div>

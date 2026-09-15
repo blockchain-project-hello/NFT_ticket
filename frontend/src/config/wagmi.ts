@@ -1,11 +1,18 @@
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
-import { polygonAmoy } from 'wagmi/chains';
+import { metaMaskWallet } from '@rainbow-me/rainbowkit/wallets';
+import { polygonAmoy, foundry } from 'wagmi/chains';
 
-const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'demo-project-id';
+const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '140737345bf758af97ff3263fcf886de';
 
 export const config = getDefaultConfig({
   appName: 'NFT Ticketing',
   projectId,
-  chains: [polygonAmoy],
-  ssr: true, // If your dApp uses server side rendering (SSR)
+  wallets: [
+    {
+      groupName: 'Recommended',
+      wallets: [metaMaskWallet],
+    },
+  ],
+  chains: [foundry, polygonAmoy],
+  ssr: true,
 });

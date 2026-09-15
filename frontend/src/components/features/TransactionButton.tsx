@@ -3,7 +3,7 @@
 import { useAccount, useSwitchChain, useChainId } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { Button, ButtonProps } from '../ui/button';
-import { polygonAmoy } from 'wagmi/chains';
+import { foundry } from 'wagmi/chains';
 import { Check } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -49,14 +49,14 @@ export function TransactionButton({
     );
   }
 
-  if (chainId !== polygonAmoy.id) {
+  if (chainId !== foundry.id) {
     return (
       <Button 
         variant="destructive"
-        onClick={() => switchChain({ chainId: polygonAmoy.id })}
+        onClick={() => switchChain({ chainId: foundry.id })}
         {...props}
       >
-        Switch to Polygon Amoy
+        Switch to Foundry
       </Button>
     );
   }

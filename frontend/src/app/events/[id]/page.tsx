@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getEvents } from '@/lib/api';
 import { TransactionButton } from '@/components/features/TransactionButton';
-import { Calendar, MapPin, Ticket, ShieldCheck, Users } from 'lucide-react';
+import { Calendar, MapPin, Ticket, ShieldCheck, Users, Check } from 'lucide-react';
 import { useWriteContract } from 'wagmi';
 import { TICKET_NFT_ABI } from '@/config/abis';
 import { parseEther } from 'viem';
@@ -71,7 +71,7 @@ export default function EventDetail({ params }: { params: { id: string } }) {
           <div className="glass-card p-6 rounded-2xl md:min-w-[300px] text-center shrink-0">
             <div className="text-sm text-gray-400 mb-1">Mint Price</div>
             <div className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-cyan-400 mb-6">
-              {event.basePrice} MATIC
+              {event.basePrice} ETH
             </div>
             <TransactionButton
               label="Mint Ticket NFT"
@@ -132,7 +132,7 @@ export default function EventDetail({ params }: { params: { id: string } }) {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Network</span>
-                <span className="text-white">Polygon Amoy</span>
+                <span className="text-white">Foundry</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Standard</span>
@@ -152,6 +152,29 @@ export default function EventDetail({ params }: { params: { id: string } }) {
           </div>
         </div>
       </div>
+
+      {isSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+          <div className="glass-card w-full max-w-sm rounded-3xl p-8 flex flex-col items-center border border-green-500/30 shadow-2xl shadow-green-500/20 text-center">
+            <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mb-6">
+              <Check className="w-8 h-8 text-green-400" />
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-2">Purchase Successful!</h3>
+            <p className="text-gray-400 mb-8">Your NFT Ticket has been securely minted to your wallet on the blockchain.</p>
+            <Link href="/dashboard" className="w-full">
+              <Button className="w-full bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-500/25">
+                Go to My Tickets
+              </Button>
+            </Link>
+            <button 
+              onClick={() => window.location.reload()}
+              className="mt-4 text-sm text-gray-500 hover:text-white"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

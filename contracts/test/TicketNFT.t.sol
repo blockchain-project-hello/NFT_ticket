@@ -67,6 +67,37 @@ contract TicketNFTTest is Test {
         assertEq(askPrice, 1.5 ether);
     }
 
+    function testListForResaleRejectsNonOwner() public {
+        vm.prank(user1);
+        nft.mintTicket{value: 1 ether}(1);
+
+        vm.prank(user2);
+        vm.expectRevert(TicketNFT.NotTicketOwner.selector);
+        nft.listForResale(1, 1.5 ether);
+    }
+
+    function testListForResaleRejectsZeroPrice() public {
+        vm.prank(user1);
+        nft.mintTicket{value: 1 ether}(1);
+
+        vm.prank(user1);
+        vm.expectRevert(TicketNFT.InvalidPrice.selector);
+        nft.listForResale(1, 0);
+    }
+
+    function testDelistForResale() public {
+        vm.prank(user1);
+        nft.mintTicket{value: 1 ether}(1);
+        vm.prank(user1);
+        nft.listForResale(1, 1.5 ether);
+
+        vm.prank(user1);
+        nft.delistFromResale(1);
+
+        (bool isListed,) = nft.resaleListings(1);
+        assertFalse(isListed);
+    }
+
     function testResaleWithValidSignature() public {
         vm.prank(user1);
         nft.mintTicket{value: 1 ether}(1);
@@ -216,5 +247,35 @@ contract TicketNFTTest is Test {
         vm.prank(user1);
         vm.expectRevert(TicketNFT.NonceAlreadyUsed.selector);
         nft.resaleTicket{value: 1.5 ether}(1, maxPrice, nonce, deadline, signature);
+    }
+
+    function testCannotBuyOwnTicket() public {
+        vm.prank(user1);
+        nft.mintTicket{value: 1 ether}(1);
+        vm.prank(user1);
+        nft.listForResale(1, 1.5 ether);
+
+        vm.prank(user1);
+        vm.expectRevert(TicketNFT.InvalidSignature.selector);
+        nft.resaleTicket{value: 1.5 ether}(1, 1.5 ether, 9, block.timestamp + 1 hours, "");
+    }
+
+    function testCannotBuyNonexistentListing() public {
+        vm.prank(user2);
+        vm.expectRevert(TicketNFT.TicketNotListed.selector);
+        nft.resaleTicket{value: 1 ether}(999, 1 ether, 10, block.timestamp + 1 hours, "");
+    }
+
+    function testCancelledListingCannotBePurchased() public {
+        vm.prank(user1);
+        nft.mintTicket{value: 1 ether}(1);
+        vm.prank(user1);
+        nft.listForResale(1, 1.5 ether);
+        vm.prank(user1);
+        nft.delistFromResale(1);
+
+        vm.prank(user2);
+        vm.expectRevert(TicketNFT.TicketNotListed.selector);
+        nft.resaleTicket{value: 1.5 ether}(1, 1.5 ether, 11, block.timestamp + 1 hours, "");
     }
 }

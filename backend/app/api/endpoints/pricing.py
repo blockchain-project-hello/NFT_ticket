@@ -3,63 +3,61 @@ import secrets
 import logging
 from fastapi import APIRouter, HTTPException, status
 from app.models.schemas import ResaleQuoteRequest, ResaleQuoteResponse
-from app.services.supabase_client import get_event, get_event_demand_metrics
 from app.core.security import sign_resale_auth
 from app.core.config import settings
+from web3 import Web3
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+TICKET_NFT_ABI = [
+    {"name": "ownerOf", "inputs": [{"name": "tokenId", "type": "uint256"}], "outputs": [{"type": "address"}], "stateMutability": "view", "type": "function"},
+    {"name": "getTicketEvent", "inputs": [{"name": "tokenId", "type": "uint256"}], "outputs": [{"type": "uint256"}], "stateMutability": "view", "type": "function"},
+    {"name": "resaleListings", "inputs": [{"name": "tokenId", "type": "uint256"}], "outputs": [{"name": "isListed", "type": "bool"}, {"name": "askPrice", "type": "uint256"}], "stateMutability": "view", "type": "function"},
+]
 
 @router.post("/resale-quote", response_model=ResaleQuoteResponse)
 async def get_resale_quote(request: ResaleQuoteRequest):
     """
     Generates a dynamic price ceiling quote and signs it for the smart contract.
     """
-    print(f"\n--- NEW RESALE QUOTE REQUEST ---")
-    print(f"Token: {request.token_id}, Seller: {request.seller_address}, Buyer: {request.buyer_address}")
-    
     try:
-        # For local testing, bypass Supabase and mock the event metrics
-        base_price = 12000000000000000 # 0.012 ETH in wei (matching the listing price)
-        recent_sales = 2
-        print(f"Base price: {base_price} wei, Recent sales: {recent_sales}")
-        
-        # Calculate dynamic ceiling
-        demand_factor = recent_sales / max(1, 10)
-        time_decay = 1.0
-        
-        max_multiplier = settings.MAX_PRICE_MULTIPLIER
-        multiplier = min(max_multiplier, demand_factor * time_decay)
-        
-        max_price_float = base_price * (1 + multiplier)
-        max_price_wei = int(max_price_float) # Assuming base_price is already in wei or needs proper conversion
-        print(f"Calculated Dynamic Ceiling (maxPrice): {max_price_wei} wei")
-        
-        # Security params
+        if request.seller_address.lower() == request.buyer_address.lower():
+            raise HTTPException(status_code=400, detail="Seller cannot buy their own ticket")
+        web3 = Web3(Web3.HTTPProvider(settings.POLYGON_AMOY_RPC_URL))
+        contract = web3.eth.contract(
+            address=Web3.to_checksum_address(settings.TICKET_NFT_ADDRESS),
+            abi=TICKET_NFT_ABI,
+        )
+        owner = contract.functions.ownerOf(request.token_id).call()
+        token_event_id = contract.functions.getTicketEvent(request.token_id).call()
+        is_listed, ask_price = contract.functions.resaleListings(request.token_id).call()
+        if owner.lower() != request.seller_address.lower():
+            raise HTTPException(status_code=409, detail="Seller no longer owns this ticket")
+        if int(token_event_id) != int(request.event_id):
+            raise HTTPException(status_code=409, detail="Ticket does not belong to this event")
+        if not is_listed or int(ask_price) <= 0:
+            raise HTTPException(status_code=409, detail="Ticket is not actively listed")
+
         nonce = secrets.randbits(128)
         deadline = int(time.time()) + settings.SIGNATURE_EXPIRY_SECONDS
-        
         signature = sign_resale_auth(
             seller=request.seller_address,
             buyer=request.buyer_address,
             token_id=request.token_id,
-            max_price=max_price_wei,
+            max_price=int(ask_price),
             nonce=nonce,
             deadline=deadline
         )
-        print(f"Successfully generated EIP-712 Signature: {signature[:10]}...{signature[-4:]}")
-        
         return ResaleQuoteResponse(
-            max_price=str(max_price_wei),
+            max_price=str(ask_price),
             deadline=deadline,
-            nonce=str(nonce),
+            nonce=nonce,
             signature=signature
         )
         
     except HTTPException as he:
-        print(f"HTTPException: {he.detail}")
         raise he
     except Exception as e:
-        print(f"Exception: {e}")
         logger.error(f"Error generating resale quote: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")

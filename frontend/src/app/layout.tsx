@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import Link from 'next/link';
+import { Navigation } from '@/components/Navigation';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -41,12 +42,6 @@ export default function RootLayout({
               </span>
             </Link>
             
-            <nav className="hidden md:flex items-center gap-8">
-              <Link href="/#events" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">Explore</Link>
-              <Link href="/marketplace" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">Marketplace</Link>
-              <Link href="/dashboard" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">Dashboard</Link>
-            </nav>
-            
             <div>
               <ConnectButton 
                 accountStatus="avatar" 
@@ -55,6 +50,7 @@ export default function RootLayout({
               />
             </div>
           </header>
+          <Navigation />
           
           <main className="flex-1 flex flex-col">
             {children}

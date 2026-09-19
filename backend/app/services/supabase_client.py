@@ -7,6 +7,28 @@ logger = logging.getLogger(__name__)
 
 _client: Optional[Client] = None
 
+
+def _normalize_event(event: Dict[str, Any]) -> Dict[str, Any]:
+    """Expose the API's price name while retaining the shared DB column name."""
+    normalized = dict(event)
+    if "base_price_wei" not in normalized and "base_price" in normalized:
+        normalized["base_price_wei"] = normalized.pop("base_price")
+    return normalized
+
+
+def _event_for_database(event: Dict[str, Any]) -> Dict[str, Any]:
+    payload = dict(event)
+    if "base_price_wei" in payload:
+        payload["base_price"] = payload.pop("base_price_wei")
+    return payload
+
+
+def _has_blockchain_metadata(event: Dict[str, Any]) -> bool:
+    return all(
+        event.get(field) is not None
+        for field in ("blockchain_event_id", "contract_address", "creation_tx_hash")
+    )
+
 def get_supabase() -> Client:
     """Returns the Supabase client singleton."""
     global _client
@@ -25,10 +47,50 @@ def get_event(event_id: str) -> Optional[Dict[str, Any]]:
     try:
         response = supabase.table("events").select("*").eq("id", event_id).execute()
         data = response.data
-        return data[0] if data else None
+        return _normalize_event(data[0]) if data and _has_blockchain_metadata(data[0]) else None
     except Exception as e:
         logger.error(f"Error fetching event {event_id}: {e}")
         return None
+
+
+def get_events() -> List[Dict[str, Any]]:
+    """Fetches all persisted events for public browsing."""
+    response = get_supabase().table("events").select("*").order("event_date").execute()
+    return [
+        _normalize_event(event)
+        for event in (response.data or [])
+        if _has_blockchain_metadata(event)
+    ]
+
+
+def create_event(event: Dict[str, Any]) -> Dict[str, Any]:
+    """Persists metadata after the corresponding blockchain transaction is confirmed."""
+    if not _has_blockchain_metadata(event):
+        raise ValueError("Blockchain event metadata is required")
+    response = get_supabase().table("events").insert(_event_for_database(event)).execute()
+    if not response.data:
+        raise RuntimeError("Event was not persisted")
+    return _normalize_event(response.data[0])
+
+
+def update_event(event_id: str, changes: Dict[str, Any]) -> Dict[str, Any]:
+    response = get_supabase().table("events").update(_event_for_database(changes)).eq("id", event_id).execute()
+    if not response.data:
+        raise RuntimeError("Event was not updated")
+    return _normalize_event(response.data[0])
+
+
+def is_organizer_wallet(wallet: str) -> bool:
+    response = (
+        get_supabase()
+        .table("organizer_wallets")
+        .select("wallet")
+        .eq("wallet", wallet.lower())
+        .eq("active", True)
+        .limit(1)
+        .execute()
+    )
+    return bool(response.data)
 
 def get_sales_for_event(event_id: str, hours: int = 24) -> List[Dict[str, Any]]:
     """Fetches sales for an event within the last `hours`."""
@@ -61,7 +123,7 @@ def get_event_demand_metrics(event_id: str) -> Dict[str, Any]:
         "recent_sales_count": total_sales, # Simplifying recent as all for now
         "total_sales": total_sales,
         "avg_price": avg_price,
-        "base_price": float(event.get("base_price", 0))
+        "base_price": float(event.get("base_price_wei", event.get("base_price", 0)))
     }
 
 def upsert_ticket(token_id: int, event_id: str, owner: str, status: str) -> None:
@@ -122,10 +184,62 @@ def get_organizer_events(wallet: str) -> List[Dict[str, Any]]:
     supabase = get_supabase()
     try:
         response = supabase.table("events").select("*").eq("organizer_wallet", wallet).execute()
-        return response.data or []
+        return [
+            _normalize_event(event)
+            for event in (response.data or [])
+            if _has_blockchain_metadata(event)
+        ]
     except Exception as e:
         logger.error(f"Error fetching events for organizer {wallet}: {e}")
         return []
+
+def get_marketplace_listings() -> List[Dict[str, Any]]:
+    response = get_supabase().table("tickets").select("*").eq("status", "listed").execute()
+    listings = []
+    for ticket in response.data or []:
+        event = get_event(str(ticket["event_id"]))
+        if not event:
+            continue
+        listings.append({
+            "token_id": ticket["token_id"],
+            "event_id": str(event["id"]),
+            "blockchain_event_id": event["blockchain_event_id"],
+            "event_name": event["name"],
+            "event_image_url": event.get("image_url"),
+            "event_date": event["event_date"],
+            "venue": event.get("venue"),
+            "base_price_wei": event["base_price_wei"],
+            "resale_price_wei": ticket["list_price"],
+            "seller": ticket["current_owner"],
+            "listing_tx_hash": ticket.get("listing_tx_hash"),
+        })
+    return listings
+
+def sync_listing(event_id: str, token_id: int, seller: str, price_wei: int, listing_tx_hash: str) -> None:
+    get_supabase().table("tickets").upsert({
+        "token_id": token_id,
+        "event_id": event_id,
+        "current_owner": seller.lower(),
+        "status": "listed",
+        "list_price": price_wei,
+        "listing_tx_hash": listing_tx_hash,
+    }).execute()
+
+def sync_sale(event_id: str, token_id: int, buyer: str, sale_tx_hash: str, seller: str, price_wei: int, royalty_wei: int) -> None:
+    get_supabase().table("tickets").update({
+        "current_owner": buyer.lower(),
+        "status": "held",
+        "list_price": None,
+    }).eq("token_id", token_id).execute()
+    get_supabase().table("sales_history").insert({
+        "event_id": event_id,
+        "token_id": token_id,
+        "seller": seller.lower(),
+        "buyer": buyer.lower(),
+        "price": price_wei,
+        "royalty_paid": royalty_wei,
+        "tx_hash": sale_tx_hash,
+    }).execute()
 
 def get_analytics_for_organizer(wallet: str) -> Dict[str, Any]:
     """Generates basic analytics for an organizer."""

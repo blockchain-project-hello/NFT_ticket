@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useAccount } from 'wagmi';
 import { KPICard } from '@/components/features/KPICard';
 import { ChatDrawer } from '@/components/features/ChatDrawer';
@@ -71,13 +72,11 @@ export default function Dashboard() {
                 <p className="text-gray-400">Welcome back! Here's how your events are performing.</p>
               </div>
               <div className="flex gap-4">
-                <Button 
-                  variant="outline"
-                  className="gap-2 shrink-0 border-violet-500/30 hover:bg-violet-500/10"
-                  onClick={() => window.location.href = '/dashboard/scanner'}
-                >
+                <Link href="/dashboard/scanner">
+                  <Button variant="outline" className="gap-2 shrink-0 border-violet-500/30 hover:bg-violet-500/10">
                   <Scan className="w-4 h-4" /> Gate Scanner
-                </Button>
+                  </Button>
+                </Link>
                 <Button 
                   onClick={() => setIsChatOpen(true)}
                   className="gap-2 shrink-0 shadow-lg shadow-violet-500/20"

@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useAccount, useSignMessage, usePublicClient } from 'wagmi';
+import { useAccount, useSignMessage, usePublicClient, useWriteContract } from 'wagmi';
 import { Button } from '@/components/ui/button';
 import { Ticket, QrCode, X, RefreshCw } from 'lucide-react';
 import { TICKET_NFT_ABI } from '@/config/abis';
+import { getEvents, syncMarketplaceListing } from '@/lib/api';
+import { parseEther } from 'viem';
 
 // Using a basic div styling to simulate QR code for now to avoid dependency issues, 
 // since cuer had issues earlier. In a real app we'd use react-qr-code
@@ -23,12 +25,17 @@ export function FanDashboard() {
   const { address } = useAccount();
   const publicClient = usePublicClient();
   const { signMessageAsync } = useSignMessage();
+  const { writeContractAsync } = useWriteContract();
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [qrPayload, setQrPayload] = useState<string>("");
   const [isSigning, setIsSigning] = useState(false);
   
   const [myTickets, setMyTickets] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [listingTokenId, setListingTokenId] = useState<number | null>(null);
+  const [resalePrice, setResalePrice] = useState('');
+  const [listingMessage, setListingMessage] = useState('');
+  const [refreshNonce, setRefreshNonce] = useState(0);
   
   const contractAddress = process.env.NEXT_PUBLIC_TICKET_CONTRACT_ADDRESS as `0x${string}`;
 
@@ -40,6 +47,7 @@ export function FanDashboard() {
       }
       setIsLoading(true);
       try {
+        const events = await getEvents();
         const balance = await publicClient.readContract({
           address: contractAddress,
           abi: TICKET_NFT_ABI,
@@ -62,17 +70,24 @@ export function FanDashboard() {
             functionName: 'getTicketEvent',
             args: [tokenId]
           }) as bigint;
+          const listing = await publicClient.readContract({
+            address: contractAddress,
+            abi: TICKET_NFT_ABI,
+            functionName: 'resaleListings',
+            args: [tokenId]
+          }) as readonly [boolean, bigint];
 
-          let eventName = "Virtual Reality Expo";
-          if (Number(eventId) === 1) eventName = "Neon Nights Music Festival";
-          if (Number(eventId) === 2) eventName = "Web3 Developer Summit";
+          const event = events.find((candidate) => candidate.blockchain_event_id === Number(eventId));
 
           tickets.push({
             tokenId: Number(tokenId),
             eventId: Number(eventId),
-            eventName,
-            date: "2026-12-01",
-            status: "Valid"
+            eventDbId: event?.id,
+            eventName: event?.name || `Event #${eventId}`,
+            date: event?.event_date || "",
+            status: listing[0] ? "Listed" : "Valid",
+            listed: listing[0],
+            listingPrice: listing[1].toString(),
           });
         }
         setMyTickets(tickets);
@@ -83,7 +98,49 @@ export function FanDashboard() {
       }
     }
     fetchTickets();
-  }, [address, publicClient, contractAddress]);
+  }, [address, publicClient, contractAddress, refreshNonce]);
+
+  const handleListForResale = async (ticket: any) => {
+    if (!address || !publicClient) return;
+    setListingMessage('');
+    try {
+      const price = parseEther(resalePrice.trim());
+      if (price <= 0n || !/^\d+(\.\d+)?$/.test(resalePrice.trim())) throw new Error('Enter a valid resale price greater than zero.');
+      const owner = await publicClient.readContract({ address: contractAddress, abi: TICKET_NFT_ABI, functionName: 'ownerOf', args: [BigInt(ticket.tokenId)] }) as string;
+      if (owner.toLowerCase() !== address.toLowerCase()) throw new Error('Connected wallet does not own this ticket.');
+      if (!ticket.eventDbId) throw new Error('Event metadata is unavailable for this ticket.');
+      setListingMessage('Waiting for wallet confirmation...');
+      const hash = await writeContractAsync({
+        address: contractAddress,
+        abi: TICKET_NFT_ABI,
+        functionName: 'listForResale',
+        args: [BigInt(ticket.tokenId), price],
+      });
+      setListingMessage('Listing transaction pending...');
+      await publicClient.waitForTransactionReceipt({ hash });
+      await syncMarketplaceListing({ event_id: ticket.eventDbId, token_id: ticket.tokenId, seller: owner, price_wei: price.toString(), listing_tx_hash: hash });
+      setListingMessage(`Listing created. Transaction: ${hash}`);
+      setListingTokenId(null);
+      setResalePrice('');
+      setRefreshNonce((value) => value + 1);
+    } catch (error: any) {
+      setListingMessage(error?.shortMessage || error?.message || 'Listing failed.');
+    }
+  };
+
+  const handleCancelListing = async (ticket: any) => {
+    if (!publicClient) return;
+    try {
+      setListingMessage('Waiting for wallet confirmation...');
+      const hash = await writeContractAsync({ address: contractAddress, abi: TICKET_NFT_ABI, functionName: 'delistFromResale', args: [BigInt(ticket.tokenId)] });
+      setListingMessage('Listing transaction pending...');
+      await publicClient.waitForTransactionReceipt({ hash });
+      setListingMessage('Listing cancelled.');
+      setRefreshNonce((value) => value + 1);
+    } catch (error: any) {
+      setListingMessage(error?.shortMessage || error?.message || 'Cancellation failed.');
+    }
+  };
 
   const handleGenerateQR = async (ticket: any) => {
     try {
@@ -151,11 +208,22 @@ export function FanDashboard() {
                   {isSigning ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <QrCode className="w-4 h-4 mr-2" />}
                   Show Access QR
                 </Button>
+                {ticket.listed ? (
+                  <Button onClick={() => void handleCancelListing(ticket)} variant="outline" className="mt-2 w-full">Cancel Listing</Button>
+                ) : listingTokenId === ticket.tokenId ? (
+                  <div className="mt-2 space-y-2">
+                    <input value={resalePrice} onChange={(event) => setResalePrice(event.target.value)} placeholder="Resale price in ETH" inputMode="decimal" className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-white" />
+                    <Button onClick={() => void handleListForResale(ticket)} className="w-full">List for Resale</Button>
+                  </div>
+                ) : (
+                  <Button onClick={() => { setListingTokenId(ticket.tokenId); setListingMessage(''); }} variant="outline" className="mt-2 w-full">List for Resale</Button>
+                )}
               </div>
             </div>
           ))
         )}
       </div>
+      {listingMessage && <p className="mt-6 text-center text-sm text-gray-300 break-all">{listingMessage}</p>}
 
       {/* QR Code Modal */}
       {selectedTicket && qrPayload && (

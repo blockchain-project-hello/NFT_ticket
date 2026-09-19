@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { getMarketplaceListings, getResaleQuote } from '@/lib/api';
+import { getMarketplaceListings, getResaleQuote, syncMarketplaceSale } from '@/lib/api';
 import { TicketCard } from '@/components/features/TicketCard';
 import { Search, Filter, AlertCircle } from 'lucide-react';
-import { useAccount, useWriteContract } from 'wagmi';
+import { useAccount, usePublicClient, useWriteContract } from 'wagmi';
 import { TICKET_NFT_ABI } from '@/config/abis';
-import { parseEther } from 'viem';
+import { formatEther } from 'viem';
 
 export default function Marketplace() {
   const [listings, setListings] = useState<any[]>([]);
@@ -15,15 +15,24 @@ export default function Marketplace() {
   const [quoteError, setQuoteError] = useState<string | null>(null);
 
   const { address } = useAccount();
-  const { writeContract } = useWriteContract();
+  const publicClient = usePublicClient();
+  const { writeContractAsync } = useWriteContract();
   const contractAddress = process.env.NEXT_PUBLIC_TICKET_CONTRACT_ADDRESS as `0x${string}`;
 
   useEffect(() => {
-    getMarketplaceListings().then(data => {
-      setListings(data);
-      setIsLoading(false);
-    });
+    void loadListings();
   }, []);
+
+  const loadListings = async () => {
+    setIsLoading(true);
+    try {
+      setListings(await getMarketplaceListings());
+    } catch (error: any) {
+      setQuoteError(error?.response?.data?.detail || 'Unable to load marketplace listings.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleBuy = async (ticket: any) => {
     if (!address) {
@@ -31,40 +40,48 @@ export default function Marketplace() {
       return;
     }
     
-    setBuyingId(ticket.tokenId);
+    setBuyingId(ticket.token_id);
     setQuoteError(null);
 
     try {
-      console.log("Requesting Resale Quote...");
-      
-      // 1. Get EIP-712 dynamic pricing quote from backend
-      const quote = await getResaleQuote(ticket.eventId, ticket.tokenId, ticket.seller, address);
-      
-      console.log("RECEIVED QUOTE FROM BACKEND:", quote);
-      
-      // Ensure signature has 0x prefix for viem
-      const formattedSignature = quote.signature.startsWith('0x') ? quote.signature : `0x${quote.signature}`;
-      
-      console.log("Formatted Signature for Execution:", formattedSignature);
+      if (!publicClient) throw new Error('Blockchain client is unavailable.');
+      const owner = await publicClient.readContract({
+        address: contractAddress,
+        abi: TICKET_NFT_ABI,
+        functionName: 'ownerOf',
+        args: [BigInt(ticket.token_id)],
+      }) as `0x${string}`;
+      const listing = await publicClient.readContract({
+        address: contractAddress,
+        abi: TICKET_NFT_ABI,
+        functionName: 'resaleListings',
+        args: [BigInt(ticket.token_id)],
+      }) as readonly [boolean, bigint];
+      if (owner.toLowerCase() !== ticket.seller.toLowerCase() || !listing[0]) {
+        throw new Error('This listing is no longer active.');
+      }
+      if (owner.toLowerCase() === address.toLowerCase()) {
+        throw new Error('You cannot buy your own ticket.');
+      }
 
-      // 2. Execute on-chain transaction
-      console.log("Executing writeContract...");
-      writeContract({
+      const quote = await getResaleQuote(ticket.blockchain_event_id.toString(), ticket.token_id, owner, address);
+      const hash = await writeContractAsync({
         address: contractAddress,
         abi: TICKET_NFT_ABI,
         functionName: 'resaleTicket',
         args: [
-          BigInt(ticket.tokenId),
+          BigInt(ticket.token_id),
           BigInt(quote.max_price),
           BigInt(quote.nonce),
           BigInt(quote.deadline),
-          formattedSignature as `0x${string}`
+          quote.signature as `0x${string}`
         ],
         value: BigInt(quote.max_price),
       });
-
+      await publicClient.waitForTransactionReceipt({ hash });
+      await syncMarketplaceSale({ event_id: ticket.event_id, token_id: ticket.token_id, buyer: address, sale_tx_hash: hash });
+      await loadListings();
     } catch (err: any) {
-      console.error(err);
       setQuoteError("Failed to fetch quote or execute tx: " + (err.message || "Unknown error"));
     } finally {
       setBuyingId(null);
@@ -110,16 +127,20 @@ export default function Marketplace() {
       ) : listings.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {listings.map((ticket, index) => (
-            <div key={ticket.tokenId} className="animate-slideUp" style={{ animationDelay: `${index * 50}ms` }}>
+            <div key={ticket.token_id} className="animate-slideUp" style={{ animationDelay: `${index * 50}ms` }}>
               <TicketCard
-                tokenId={ticket.tokenId}
-                eventId={ticket.eventId}
-                eventName={ticket.eventName}
+                tokenId={ticket.token_id}
+                eventId={ticket.blockchain_event_id}
+                eventName={ticket.event_name}
                 seller={ticket.seller}
-                price={ticket.price}
-                status={ticket.status}
+                price={formatEther(BigInt(ticket.resale_price_wei))}
+                basePrice={formatEther(BigInt(ticket.base_price_wei))}
+                eventDate={ticket.event_date}
+                venue={ticket.venue}
+                imageUrl={ticket.event_image_url}
+                status="Active"
                 onBuy={() => handleBuy(ticket)}
-                isLoading={buyingId === ticket.tokenId}
+                isLoading={buyingId === ticket.token_id}
               />
             </div>
           ))}

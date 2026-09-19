@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Ticket, Zap, Users, Bot, ArrowRight, Activity, Globe } from 'lucide-react';
 import { getEvents } from '@/lib/api';
-import Image from 'next/image';
 
 export default async function Home() {
   const events = await getEvents();
@@ -42,6 +41,16 @@ export default async function Home() {
             </Link>
             <Link href="/dashboard">
               <Button size="lg" variant="outline" className="w-full sm:w-auto">
+                My Tickets
+              </Button>
+            </Link>
+            <Link href="/marketplace">
+              <Button size="lg" variant="outline" className="w-full sm:w-auto">
+                Marketplace
+              </Button>
+            </Link>
+            <Link href="/organizer">
+              <Button size="lg" variant="ghost" className="w-full sm:w-auto">
                 Organizer Dashboard
               </Button>
             </Link>
@@ -111,11 +120,13 @@ export default async function Home() {
                 <div className="glass-card rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_10px_40px_-10px_rgba(139,92,246,0.3)] border border-white/10 hover:border-violet-500/50">
                   <div className="h-48 relative overflow-hidden">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={event.image} alt={event.name} className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-110" />
+                    {event.image_url ? (
+                      <img src={event.image_url} alt={event.name} className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-110" />
+                    ) : <div className="w-full h-full bg-gradient-to-br from-violet-950 to-cyan-950" />}
                     <div className="absolute inset-0 bg-gradient-to-t from-gray-950 to-transparent" />
                     <div className="absolute bottom-4 left-4">
                       <div className="text-xs font-bold px-2 py-1 bg-violet-600 rounded text-white mb-2 inline-block">
-                        {new Date(event.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {new Date(event.event_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                       </div>
                       <h3 className="text-xl font-bold text-white">{event.name}</h3>
                     </div>
@@ -123,7 +134,7 @@ export default async function Home() {
                   <div className="p-5 flex items-center justify-between">
                     <div>
                       <div className="text-sm text-gray-400">Starting at</div>
-                      <div className="text-lg font-bold text-cyan-400">{event.basePrice} ETH</div>
+                      <div className="text-lg font-bold text-cyan-400">{(Number(event.base_price_wei) / 1e18).toString()} ETH</div>
                     </div>
                     <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-violet-500 transition-colors">
                       <ArrowRight className="w-5 h-5 text-white" />

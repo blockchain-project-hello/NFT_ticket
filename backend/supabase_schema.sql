@@ -12,15 +12,44 @@ CREATE TABLE IF NOT EXISTS events (
     name TEXT NOT NULL,
     description TEXT,
     organizer_wallet TEXT NOT NULL,
-    base_price BIGINT NOT NULL,          -- in wei
+    venue TEXT,
+    base_price_wei BIGINT NOT NULL,      -- in wei
     total_supply INTEGER NOT NULL,
     tickets_minted INTEGER DEFAULT 0,
     event_date TIMESTAMPTZ,
     image_url TEXT,
+    blockchain_event_id BIGINT NOT NULL,
+    contract_address TEXT NOT NULL,
+    creation_tx_hash TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX idx_events_organizer ON events(organizer_wallet);
+CREATE UNIQUE INDEX idx_events_chain_id ON events(contract_address, blockchain_event_id);
+
+-- ===================== ORGANIZER ROLES =====================
+CREATE TABLE IF NOT EXISTS organizer_wallets (
+    wallet TEXT PRIMARY KEY,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Migration helpers for databases created from the earlier prototype schema.
+ALTER TABLE events ADD COLUMN IF NOT EXISTS venue TEXT;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS base_price_wei BIGINT;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS blockchain_event_id BIGINT;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS contract_address TEXT;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS creation_tx_hash TEXT;
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'events' AND column_name = 'base_price'
+    ) THEN
+        UPDATE events SET base_price_wei = base_price WHERE base_price_wei IS NULL;
+        ALTER TABLE events DROP COLUMN base_price;
+    END IF;
+END $$;
 
 -- ===================== TICKETS =====================
 CREATE TABLE IF NOT EXISTS tickets (
@@ -84,32 +113,3 @@ CREATE TABLE IF NOT EXISTS campaigns (
 CREATE INDEX idx_campaigns_event ON campaigns(event_id);
 CREATE INDEX idx_campaigns_state ON campaigns(state);
 
--- ===================== SEED DATA (for development) =====================
-INSERT INTO events (id, name, description, organizer_wallet, base_price, total_supply, event_date, image_url)
-VALUES
-    ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'ETH Mumbai 2025', 'The biggest Ethereum conference in India', '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', 10000000000000000, 500, '2025-12-15T09:00:00Z', NULL),
-    ('b2c3d4e5-f6a7-8901-bcde-f12345678901', 'Web3 Goa Festival', 'A 3-day Web3 festival on the beaches of Goa', '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', 50000000000000000, 200, '2025-11-20T10:00:00Z', NULL),
-    ('c3d4e5f6-a7b8-9012-cdef-123456789012', 'DeFi Delhi Summit', 'Expert talks on DeFi protocols and yield strategies', '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', 25000000000000000, 300, '2026-01-10T08:00:00Z', NULL)
-ON CONFLICT (id) DO NOTHING;
-
--- Insert some seed tickets
-INSERT INTO tickets (token_id, event_id, current_owner, status, list_price)
-VALUES
-    (1, 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC', 'listed', 15000000000000000),
-    (2, 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', '0x90F79bf6EB2c4f870365E785982E1f101E93b906', 'listed', 20000000000000000),
-    (3, 'b2c3d4e5-f6a7-8901-bcde-f12345678901', '0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65', 'listed', 60000000000000000)
-ON CONFLICT (token_id) DO NOTHING;
-
--- Insert seed sales history
-INSERT INTO sales_history (event_id, token_id, seller, buyer, price, royalty_paid, timestamp)
-VALUES
-    ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 1, '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC', 10000000000000000, 500000000000000, NOW() - INTERVAL '2 days'),
-    ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 2, '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', '0x90F79bf6EB2c4f870365E785982E1f101E93b906', 10000000000000000, 500000000000000, NOW() - INTERVAL '1 day'),
-    ('b2c3d4e5-f6a7-8901-bcde-f12345678901', 3, '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', '0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65', 50000000000000000, 2500000000000000, NOW() - INTERVAL '3 hours')
-ON CONFLICT DO NOTHING;
-
--- Insert a seed campaign
-INSERT INTO campaigns (event_id, goal, funded, deadline, state)
-VALUES
-    ('c3d4e5f6-a7b8-9012-cdef-123456789012', 5000000000000000000, 1200000000000000000, NOW() + INTERVAL '30 days', 'active')
-ON CONFLICT DO NOTHING;

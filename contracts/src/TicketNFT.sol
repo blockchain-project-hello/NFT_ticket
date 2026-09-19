@@ -121,6 +121,7 @@ contract TicketNFT is ERC721Enumerable, Ownable, ReentrancyGuard, EIP712 {
     /// @param askPrice The asking price
     function listForResale(uint256 tokenId, uint256 askPrice) external {
         if (ownerOf(tokenId) != msg.sender) revert NotTicketOwner();
+        if (askPrice == 0) revert InvalidPrice();
 
         resaleListings[tokenId] = ResaleListing({
             isListed: true,
